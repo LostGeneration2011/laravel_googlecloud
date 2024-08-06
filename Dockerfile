@@ -1,26 +1,23 @@
-FROM php:8.2.12-fpm-alpine
+FROM richarvey/nginx-php-fpm:latest
 
-# Cài đặt các gói cần thiết và phần mở rộng PHP
-RUN apk add --no-cache nginx wget \
-    && docker-php-ext-install pdo pdo_mysql
+COPY . .
 
-# Tạo thư mục cần thiết
-RUN mkdir -p /run/nginx
+# Image config
+ENV SKIP_COMPOSER 1
+ENV WEBROOT /var/www/html/public
+ENV PHP_ERRORS_STDERR 1
+ENV RUN_SCRIPTS 1
+ENV REAL_IP_HEADER 1
 
-# Sao chép tệp cấu hình Nginx
-COPY docker/nginx.conf /etc/nginx/nginx.conf
+# Laravel config
+ENV APP_ENV production
+ENV APP_DEBUG false
+ENV LOG_CHANNEL stderr
 
-# Tạo thư mục ứng dụng và sao chép mã nguồn
-RUN mkdir -p /app
-COPY . /app
+# Allow composer to run as root
+ENV COMPOSER_ALLOW_SUPERUSER 1
 
-# Cài đặt Composer
-RUN sh -c "wget http://getcomposer.org/composer.phar && chmod a+x composer.phar && mv composer.phar /usr/local/bin/composer"
-RUN cd /app && \
-    /usr/local/bin/composer install --no-dev
+# Install node and npm for Vite
+# RUN apk add --update nodejs npm
 
-# Thay đổi quyền sở hữu thư mục ứng dụng
-RUN chown -R www-data: /app
-
-# Khởi động PHP-FPM và Nginx
-CMD sh /app/docker/startup.sh
+CMD ["/start.sh"]
