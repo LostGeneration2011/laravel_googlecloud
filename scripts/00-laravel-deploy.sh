@@ -1,13 +1,9 @@
-#!/usr/bin/env bash
-echo "Running composer"
-composer install --no-dev --working-dir=/var/www/html
+#!/bin/sh
 
-echo "Running migrations..."
-php artisan migrate --force
+sed -i "s,LISTEN_PORT,$PORT,g" /etc/nginx/nginx.conf
 
-#echo "Running seeders..."
-#php artisan db:seed
+php-fpm -D
 
-#echo "Running vite..."
-#npm install
-#npm run build
+# while ! nc -w 1 -z 127.0.0.1 9000; do sleep 0.1; done;
+
+nginx
