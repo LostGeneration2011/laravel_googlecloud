@@ -1,23 +1,19 @@
-FROM richarvey/nginx-php-fpm:latest
+FROM php:8.1-fpm-alpine
 
-COPY . .
+RUN apk add --no-cache nginx wget
 
-# Image config
-ENV SKIP_COMPOSER 1
-ENV WEBROOT /var/www/html/public
-ENV PHP_ERRORS_STDERR 1
-ENV RUN_SCRIPTS 1
-ENV REAL_IP_HEADER 1
+RUN mkdir -p /run/nginx
 
-# Laravel config
-ENV APP_ENV production
-ENV APP_DEBUG false
-ENV LOG_CHANNEL stderr
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 
-# Allow composer to run as root
-ENV COMPOSER_ALLOW_SUPERUSER 1
+RUN mkdir -p /app
+COPY . /app
+COPY ./src /app
 
-# Install node and npm for Vite
-# RUN apk add --update nodejs npm
+RUN sh -c "wget http://getcomposer.org/composer.phar && chmod a+x composer.phar && mv composer.phar /usr/local/bin/composer"
+RUN cd /app && \
+    /usr/local/bin/composer install --no-dev
 
-CMD ["/start.sh"]
+RUN chown -R www-data: /app
+
+CMD sh /app/docker/startup.sh
