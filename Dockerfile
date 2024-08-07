@@ -1,19 +1,37 @@
-FROM php:8.1-fpm-alpine
+# Sử dụng image PHP chính thức
+FROM php:7.4-fpm
 
-RUN apk add --no-cache nginx wget
+# Cài đặt các gói phụ thuộc cần thiết
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    locales \
+    zip \
+    jpegoptim optipng pngquant gifsicle \
+    vim \
+    unzip \
+    git \
+    curl
 
-RUN mkdir -p /run/nginx
+# Cài đặt Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-COPY docker/nginx.conf /etc/nginx/nginx.conf
+# Thiết lập thư mục làm việc
+WORKDIR /var/www
 
-RUN mkdir -p /app
-COPY . /app
-COPY ./src /app
+# Sao chép tệp dự án vào container
+COPY . /var/www
 
-RUN sh -c "wget http://getcomposer.org/composer.phar && chmod a+x composer.phar && mv composer.phar /usr/local/bin/composer"
-RUN cd /app && \
-    /usr/local/bin/composer install --no-dev
+# Chạy Composer để cài đặt các gói phụ thuộc của Laravel
+RUN composer install
 
-RUN chown -R www-data: /app
+# Đặt quyền cho thư mục lưu trữ và bộ nhớ cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-CMD sh /app/docker/startup.sh
+# Mở cổng 8080
+EXPOSE 8080
+
+# Khởi động ứng dụng Laravel bằng lệnh artisan serve
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
